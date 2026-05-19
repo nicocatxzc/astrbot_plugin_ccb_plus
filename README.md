@@ -5,7 +5,7 @@
 # 新增的内容
 ## 更新前建议备份数据文件（如有需要）可能出现意料外错误
 
-## 26/5/19
+## 19/5/2026
 添加命令：ccbclear 清除记录；ccbnodo 防CCB开关。 逻辑来自 [ERX399 / ccb_plus_beta](https://github.com/ERX399/ccb_plus_beta) <br>
 清除了一些无效的注释，引用和变量 <br>
 整合了一些出现频繁的代码段 <br>
