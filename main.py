@@ -1,5 +1,5 @@
 # -- coding: utf-8 --
-from astrbot.api.event import filter, AstrMessageEvent, MessageEventResult
+from astrbot.api.event import filter, AstrMessageEvent
 from astrbot.api.star import Context, Star, register
 from astrbot.api import logger
 import astrbot.api.message_components as Comp
@@ -10,11 +10,6 @@ import time
 import json
 import random
 import os
-
-# DATA_FILE = os.path.join(
-#     os.getcwd(),
-#     "data", "plugins", "astrbot_plugin_ccb_plus", "ccb.json"
-# )
 
 DATA_FILE = "data/ccb.json"
 
@@ -47,6 +42,81 @@ class ccb(Star):
         self.selfdo = self.config.get("self_ccb", False)         # 0721 默认为否
         self.crit_prob  =   self.config.get("crit_prob")
         self.is_log =   self.config.get("is_log")           # 完整日志，默认为false
+
+    #  from issue 6
+    async def _is_admin(self, event: AstrMessageEvent) -> bool:
+        try:
+            return bool(event.is_admin())
+        except Exception:
+            return False
+
+    def _save_white_list(self):
+        try:
+            self.config["white_list"] = self.white_list
+            save_fn = getattr(self.config, "save", None)
+            if callable(save_fn):
+                save_fn()
+        except Exception as e:
+            logger.warning(f"保存白名单失败: {e}")
+
+    async def _get_nickname(self, event: AstrMessageEvent, user_id: str, strict_event: bool = False) -> str:
+        nickname = user_id
+        if event.get_platform_name() == "aiocqhttp":
+            try:
+                from astrbot.core.platform.sources.aiocqhttp.aiocqhttp_message_event import AiocqhttpMessageEvent
+                if strict_event:
+                    assert isinstance(event, AiocqhttpMessageEvent)
+                stranger_info = await event.bot.api.call_action(
+                    'get_stranger_info', user_id=user_id
+                )
+                nickname = stranger_info.get("nick", nickname)
+            except Exception:
+                pass
+        return nickname
+
+    # 获取目标用户ID
+    def _get_target_user_id(self, event: AstrMessageEvent) -> str:
+        self_id = str(event.get_self_id())
+        return next(
+            (str(seg.qq) for seg in event.get_messages()
+             if isinstance(seg, Comp.At) and str(seg.qq) != self_id),
+            str(event.get_sender_id())
+        )
+
+    # 重新计算由于clear导致的缺口
+    def _recalc_max(self, record: dict):
+        if not isinstance(record, dict):
+            return
+        ccb_by = record.get(a4, {}) or {}
+        total_num = 0
+        try:
+            total_num = int(record.get(a2, 0))
+        except Exception:
+            total_num = 0
+        try:
+            total_vol = float(record.get(a3, 0))
+        except Exception:
+            total_vol = 0.0
+        if total_num <= 0 or not ccb_by:
+            record[a5] = 0.0
+            for k, v in ccb_by.items():
+                if isinstance(v, dict):
+                    v["max"] = False
+            record[a4] = ccb_by
+            return
+        record[a5] = round(total_vol / total_num, 2)
+        try:
+            best_id = max(
+                ccb_by.items(),
+                key=lambda x: int(x[1].get("count", 0)) if isinstance(x[1], dict) else 0
+            )[0]
+        except Exception:
+            best_id = None
+        if best_id:
+            for k, v in ccb_by.items():
+                if isinstance(v, dict):
+                    v["max"] = (k == best_id)
+        record[a4] = ccb_by
 
     def read_data(self):
         try:
@@ -105,11 +175,9 @@ class ccb(Star):
         ccb，顾名思义，用来ccb
         用法： ccb [@]
         """
-        import time, random
 
         group_id = str(event.get_group_id())
         send_id = str(event.get_sender_id())
-        self_id = str(event.get_self_id())
         actor_id = send_id
         now = time.time()
 
@@ -134,12 +202,7 @@ class ccb(Star):
             yield event.plain_result("冲得出来吗你就冲，再冲就给你折了")
             return
 
-        # 找到 @ 的目标，否则默认自己
-        target_user_id = next(
-            (str(seg.qq) for seg in event.get_messages()
-             if isinstance(seg, Comp.At) and str(seg.qq) != self_id),
-            send_id
-        )
+        target_user_id = self._get_target_user_id(event)
 
         if target_user_id in self.white_list:
             stranger_info = await event.bot.api.call_action(
@@ -174,15 +237,7 @@ class ccb(Star):
                 for item in group_data:
                     if item.get(a1) == target_user_id:
                         # 获取昵称
-                        nickname = target_user_id
-                        if event.get_platform_name() == "aiocqhttp":
-                            from astrbot.core.platform.sources.aiocqhttp.aiocqhttp_message_event import \
-                                AiocqhttpMessageEvent
-                            assert isinstance(event, AiocqhttpMessageEvent)
-                            stranger_info = await event.bot.api.call_action(
-                                'get_stranger_info', user_id=target_user_id
-                            )
-                            nickname = stranger_info.get("nick", nickname)
+                        nickname = await self._get_nickname(event, target_user_id, strict_event=True)
 
                         # 更新 num / vol / ccb_by
                         item[a2] = int(item.get(a2, 0)) + 1
@@ -270,14 +325,7 @@ class ccb(Star):
         else:
             # 新记录
             try:
-                nickname = target_user_id
-                if event.get_platform_name() == "aiocqhttp":
-                    from astrbot.core.platform.sources.aiocqhttp.aiocqhttp_message_event import AiocqhttpMessageEvent
-                    assert isinstance(event, AiocqhttpMessageEvent)
-                    stranger_info = await event.bot.api.call_action(
-                        'get_stranger_info', user_id=target_user_id
-                    )
-                    nickname = stranger_info.get("nick", nickname)
+                nickname = await self._get_nickname(event, target_user_id, strict_event=True)
 
                 chain = [
                     Comp.Plain(f"你和{nickname}发生了{duration}min长的ccb行为，向ta注入了{V:.2f}ml的生命因子"),
@@ -331,14 +379,7 @@ class ccb(Star):
         msg = "被ccb排行榜 TOP5：\n"
         for i, r in enumerate(top5, 1):
             uid = r[a1]
-            nick = uid
-            if event.get_platform_name() == "aiocqhttp":
-                try:
-                    from astrbot.core.platform.sources.aiocqhttp.aiocqhttp_message_event import AiocqhttpMessageEvent
-                    stranger_info = await event.bot.api.call_action('get_stranger_info', user_id=uid)
-                    nick = stranger_info.get("nick", nick)
-                except:
-                    pass
+            nick = await self._get_nickname(event, uid)
             msg += f"{i}. {nick} - 次数：{r[a2]}\n"
         yield event.plain_result(msg)
 
@@ -357,14 +398,7 @@ class ccb(Star):
         msg = "被注入量排行榜 TOP5：\n"
         for i, r in enumerate(top5, 1):
             uid = r[a1]
-            nick = uid
-            if event.get_platform_name() == "aiocqhttp":
-                try:
-                    from astrbot.core.platform.sources.aiocqhttp.aiocqhttp_message_event import AiocqhttpMessageEvent
-                    stranger_info = await event.bot.api.call_action('get_stranger_info', user_id=uid)
-                    nick = stranger_info.get("nick", nick)
-                except:
-                    pass
+            nick = await self._get_nickname(event, uid)
             msg += f"{i}. {nick} - 累计注入：{float(r[a3]):.2f}ml\n"
         yield event.plain_result(msg)
 
@@ -375,13 +409,7 @@ class ccb(Star):
         用法：ccbinfo [@目标]
         """
         group_id = str(event.get_group_id())
-        # 解析 @ 目标，否则默认查询自己
-        self_id = str(event.get_self_id())
-        target_user_id = next(
-            (str(seg.qq) for seg in event.get_messages()
-             if isinstance(seg, Comp.At) and str(seg.qq) != self_id),
-            str(event.get_sender_id())
-        )
+        target_user_id = self._get_target_user_id(event)
 
         # 读取群数据
         all_data = self.read_data()
@@ -433,16 +461,8 @@ class ccb(Star):
 
         # 获取昵称
         first_nick = first_actor or "未知"
-        if first_actor and event.get_platform_name() == "aiocqhttp":
-            try:
-                from astrbot.core.platform.sources.aiocqhttp.aiocqhttp_message_event import AiocqhttpMessageEvent
-                assert isinstance(event, AiocqhttpMessageEvent)
-                stranger_info = await event.bot.api.call_action(
-                    'get_stranger_info', user_id=first_actor
-                )
-                first_nick = stranger_info.get("nick", first_actor)
-            except:
-                pass
+        if first_actor:
+            first_nick = await self._get_nickname(event, first_actor, strict_event=True)
 
         # 输出结果
         msg = (
@@ -506,82 +526,14 @@ class ccb(Star):
                     producer_id = None
 
             # 获取昵称
-            nick = uid
+            nick = await self._get_nickname(event, uid, strict_event=True)
             producer_nick = producer_id or "未知"
-            if event.get_platform_name() == "aiocqhttp":
-                try:
-                    from astrbot.core.platform.sources.aiocqhttp.aiocqhttp_message_event import AiocqhttpMessageEvent
-                    assert isinstance(event, AiocqhttpMessageEvent)
-                    # 获取被ccb者昵称
-                    try:
-                        stranger_info = await event.bot.api.call_action('get_stranger_info', user_id=uid)
-                        nick = stranger_info.get("nick", nick)
-                    except Exception:
-                        pass
-                    # 获取产生者昵称
-                    if producer_id:
-                        try:
-                            p_info = await event.bot.api.call_action('get_stranger_info', user_id=producer_id)
-                            producer_nick = p_info.get("nick", producer_nick)
-                        except Exception:
-                            pass
-                except Exception:
-                    pass
+            if producer_id:
+                producer_nick = await self._get_nickname(event, producer_id, strict_event=True)
 
             msg += f"{i}. {nick} - 单次最大：{max_val:.2f}ml（{producer_nick}）\n"
 
         yield event.plain_result(msg)
-
-    '''
-    @filter.command("haiwang")
-    async def haiwang(self, event: AstrMessageEvent):
-        """
-        海王榜
-        计算群中最后宫特质的群友
-        """
-        group_id = str(event.get_group_id())
-        all_data = self.read_data()
-        group_data = all_data.get(group_id, [])
-        if not group_data:
-            yield event.plain_result("当前群暂无ccb记录。")
-            return
-
-        # 聚合
-        stats = {}  # actor_id -> {"first": x, "actions": y}
-        for record in group_data:
-            ccb_by = record.get(a4, {})
-            for actor_id, info in ccb_by.items():
-                st = stats.setdefault(actor_id, {"first": 0, "actions": 0})
-                st["actions"] += info.get("count", 0)
-                if info.get("first"):
-                    st["first"] += 1
-
-        # 计算权重并排序
-        ranking = []
-        for actor_id, st in stats.items():
-            weight = st["first"] * 2 + st["actions"]
-            ranking.append((actor_id, st["first"], st["actions"], weight))
-        ranking.sort(key=lambda x: x[3], reverse=True)
-        top5 = ranking[:5]
-
-        # 构造输出
-        msg = "🏆 海王榜 TOP5 🏆\n"
-        for idx, (actor_id, first_cnt, actions_cnt, weight) in enumerate(top5, 1):
-            nick = actor_id
-            if event.get_platform_name() == "aiocqhttp":
-                try:
-                    from astrbot.core.platform.sources.aiocqhttp.aiocqhttp_message_event import AiocqhttpMessageEvent
-                    assert isinstance(event, AiocqhttpMessageEvent)
-                    info = await event.bot.api.call_action("get_stranger_info", user_id=actor_id)
-                    nick = info.get("nick", nick)
-                except:
-                    pass
-            msg += (
-                f"{idx}. {nick} - 海王值：{weight}\n"
-                # f"(首位：{first_cnt}次，ccb：{actions_cnt}次)\n"
-            )
-        yield event.plain_result(msg)
-    '''
 
     @filter.command("xnn")
     async def xnn(self, event: AstrMessageEvent):
@@ -625,18 +577,85 @@ class ccb(Star):
         # 构造输出
         msg = "💎 小南梁 TOP5 💎\n"
         for idx, (uid, xnn_val) in enumerate(ranking[:5], 1):
-            nick = uid
-            if event.get_platform_name() == "aiocqhttp":
-                try:
-                    from astrbot.core.platform.sources.aiocqhttp.aiocqhttp_message_event import AiocqhttpMessageEvent
-                    assert isinstance(event, AiocqhttpMessageEvent)
-                    info = await event.bot.api.call_action("get_stranger_info", user_id=uid)
-                    nick = info.get("nick", nick)
-                except:
-                    pass
+            nick = await self._get_nickname(event, uid, strict_event=True)
             msg += (
                 f"{idx}. {nick} - XNN值：{xnn_val:.2f} \n"
                 # f"(被ccb次数：{num}，容量：{vol:.2f}ml，对他人ccb：{actions})\n"
             )
 
         yield event.plain_result(msg)
+
+    # issue 6
+    @filter.command("ccbclear")
+    async def ccbclear(self, event: AstrMessageEvent):
+        """
+        管理员指令：清除某人的所有 CCB 记录
+        用法：ccbclear [@目标]
+        """
+        group_id = str(event.get_group_id())
+        if not await self._is_admin(event):
+            yield event.plain_result("无权限使用此命令")
+            return
+
+        target_user_id = self._get_target_user_id(event)
+
+        all_data = self.read_data()
+        group_data = all_data.get(group_id, [])
+        if not isinstance(group_data, list):
+            group_data = []
+
+        before_len = len(group_data)
+        group_data = [r for r in group_data if isinstance(r, dict) and r.get(a1) != target_user_id]
+        removed_self = before_len - len(group_data)
+
+        removed_from_others = 0
+        modified_records = []
+        for record in group_data:
+            if not isinstance(record, dict):
+                continue
+            ccb_by = record.get(a4, {}) or {}
+            if target_user_id in ccb_by:
+                try:
+                    removed_from_others += int(ccb_by[target_user_id].get("count", 0))
+                except Exception:
+                    removed_from_others += 0
+                del ccb_by[target_user_id]
+                record[a4] = ccb_by
+                record[a2] = sum(
+                    int(info.get("count", 0)) for info in ccb_by.values() if isinstance(info, dict)
+                )
+                modified_records.append(record)
+
+        for record in modified_records:
+            self._recalc_max(record)
+
+        all_data[group_id] = group_data
+        self.write_data(all_data)
+
+        msg = (
+            f"已清除 {target_user_id} 的 CCB 记录：\n"
+            f"删除自身被CCB记录：{removed_self} 条\n"
+            f"移除朝壁他人记录：{removed_from_others} 次\n"
+            f"相关记录已重新校准"
+        )
+        yield event.plain_result(msg)
+
+    @filter.command("ccbnodo")
+    async def ccbnodo(self, event: AstrMessageEvent):
+        """
+        管理员指令：切换目标防被 CCB 状态
+        用法：ccbnodo [@目标]
+        """
+        if not await self._is_admin(event):
+            yield event.plain_result("无权限使用此命令")
+            return
+
+        target_user_id = self._get_target_user_id(event)
+        if target_user_id in self.white_list:
+            self.white_list = [uid for uid in self.white_list if uid != target_user_id]
+            self._save_white_list()
+            yield event.plain_result(f"已解除 {target_user_id} 的防CCB保护")
+        else:
+            self.white_list.append(target_user_id)
+            self._save_white_list()
+            yield event.plain_result(f"已将 {target_user_id} 加入防CCB保护名单")

@@ -1,9 +1,14 @@
 # C C B PLUS!!!
 
-基于 灵煞 / ccb 的 和QQ群群友发生赛博sex的插件 的改进版。
+基于 [灵煞 / ccb](https://github.com/tenno1174/astrbot_plugin_ccb) 的 和QQ群群友发生赛博sex的插件 的改进版。
 
 # 新增的内容
 ## 更新前建议备份数据文件（如有需要）可能出现意料外错误
+
+## 26/5/19
+添加命令：ccbclear 清除记录；ccbnodo 防CCB开关。 逻辑来自 [ERX399 / ccb_plus_beta](https://github.com/ERX399/ccb_plus_beta) <br>
+清除了一些无效的注释，引用和变量 <br>
+整合了一些出现频繁的代码段 <br>
 
 ## 24/8/2025
 由群友使用量决定，注释了海王榜命令 <br>
