@@ -217,7 +217,7 @@ class ccb(Star):
 
         target_user_id = self._get_target_user_id(event)
 
-        if target_user_id in self.white_list:
+        if target_user_id in self.white_list and not await self._is_admin(event):
             nickname = await self._get_nickname(event, target_user_id)
             yield event.plain_result(f"{nickname} 的后门被后户之神霸占了，不能踩踩背（悲")
             return
