@@ -5,15 +5,18 @@ from astrbot.api import logger
 import astrbot.api.message_components as Comp
 from collections import deque
 from astrbot.api import AstrBotConfig
+from astrbot.core.star import StarTools
 
 import time
 import json
 import random
 import os
 
-DATA_FILE = "data/ccb.json"
+data_dir = StarTools.get_data_dir("astrbot_plugin_ccb_plus")
 
-LOG_FILE = "data/ccb_log.json"
+DATA_FILE = os.path.join(data_dir, "ccb.json")
+
+LOG_FILE = os.path.join(data_dir, "ccb_log.json")
 
 a1 = "id"       # qq号
 a2 = "num"      # 北朝次数
