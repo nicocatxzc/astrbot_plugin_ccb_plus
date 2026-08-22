@@ -66,6 +66,19 @@ class ccb(Star):
                 from astrbot.core.platform.sources.aiocqhttp.aiocqhttp_message_event import AiocqhttpMessageEvent
                 if strict_event:
                     assert isinstance(event, AiocqhttpMessageEvent)
+                # 优先使用群成员信息：群名片(card) > QQ昵称(nickname) > QQ号
+                group_id = event.get_group_id()
+                if group_id:
+                    try:
+                        member_info = await event.bot.api.call_action(
+                            'get_group_member_info', group_id=group_id, user_id=user_id
+                        )
+                        nick = member_info.get("card") or member_info.get("nickname")
+                        if nick:
+                            return nick
+                    except Exception:
+                        pass
+                # 回退：使用陌生人信息
                 stranger_info = await event.bot.api.call_action(
                     'get_stranger_info', user_id=user_id
                 )
@@ -169,7 +182,7 @@ class ccb(Star):
         except Exception as e:
             logger.error(f"append_log 失败: {e}")
 
-    @filter.command("ccb")
+    @filter.command("ccb", alias={'踩踩背', '捶捶背'})
     async def ccb(self, event: AstrMessageEvent):
         """
         ccb，顾名思义，用来ccb
@@ -205,10 +218,7 @@ class ccb(Star):
         target_user_id = self._get_target_user_id(event)
 
         if target_user_id in self.white_list:
-            stranger_info = await event.bot.api.call_action(
-                'get_stranger_info', user_id=target_user_id
-            )
-            nickname = stranger_info.get("nick", target_user_id)
+            nickname = await self._get_nickname(event, target_user_id)
             yield event.plain_result(f"{nickname} 的后门被后户之神霸占了，不能踩踩背（悲")
             return
 
