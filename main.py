@@ -300,14 +300,14 @@ class ccb(Star):
 
                         if crit:
                             chain = [
-                                Comp.Plain(f"你和{nickname}发生了{duration}min长的踩踩背行为，向ta注入了 💥 暴击！{V:.2f}ml的生命因子"),
+                                Comp.Plain(f"你和{nickname}发生了{duration}min长的ccb行为，向ta注入了 💥 暴击！{V:.2f}ml的生命因子"),
                                 Comp.Image.fromURL(pic),
                                 Comp.Plain(f"这是ta的第{item[a2]}次。")
                             ]
                         else:
                             # 发送结果
                             chain = [
-                                Comp.Plain(f"你和{nickname}发生了{duration}min长的踩踩背行为，向ta注入了{V:.2f}ml的生命因子"),
+                                Comp.Plain(f"你和{nickname}发生了{duration}min长的ccb行为，向ta注入了{V:.2f}ml的生命因子"),
                                 Comp.Image.fromURL(pic),
                                 Comp.Plain(f"这是ta的第{item[a2]}次。")
                             ]
@@ -332,7 +332,7 @@ class ccb(Star):
                         return
             except Exception as e:
                 logger.error(f"报错: {e}")
-                yield event.plain_result("对方拒绝了和你踩踩背")
+                yield event.plain_result("对方拒绝了和你ccb")
                 return
 
         else:
@@ -341,7 +341,7 @@ class ccb(Star):
                 nickname = await self._get_nickname(event, target_user_id, strict_event=True)
 
                 chain = [
-                    Comp.Plain(f"你和{nickname}发生了{duration}min长的踩踩背行为，向ta注入了{V:.2f}ml的生命因子"),
+                    Comp.Plain(f"你和{nickname}发生了{duration}min长的ccb行为，向ta注入了{V:.2f}ml的生命因子"),
                     Comp.Image.fromURL(pic),
                     Comp.Plain("这是ta的初体验。")
                 ]
@@ -374,7 +374,7 @@ class ccb(Star):
                 return
             except Exception as e:
                 logger.error(f"报错: {e}")
-                yield event.plain_result("对方拒绝了和你踩踩背")
+                yield event.plain_result("对方拒绝了和你ccb")
                 return
 
     @filter.command("ccbtop")
@@ -385,7 +385,7 @@ class ccb(Star):
         group_id = str(event.get_group_id())
         group_data = self.read_data().get(group_id, [])
         if not group_data:
-            yield event.plain_result("当前群暂无踩踩背记录。")
+            yield event.plain_result("当前群暂无ccb记录。")
             return
 
         top5 = sorted(group_data, key=lambda x: int(x.get(a2, 0)), reverse=True)[:5]
@@ -404,7 +404,7 @@ class ccb(Star):
         group_id = str(event.get_group_id())
         group_data = self.read_data().get(group_id, [])
         if not group_data:
-            yield event.plain_result("当前群暂无踩踩背记录。")
+            yield event.plain_result("当前群暂无ccb记录。")
             return
 
         top5 = sorted(group_data, key=lambda x: float(x.get(a3, 0)), reverse=True)[:5]
@@ -431,7 +431,7 @@ class ccb(Star):
         # 查找目标记录
         record = next((r for r in group_data if r.get(a1) == target_user_id), None)
         if not record:
-            yield event.plain_result("该用户暂无踩踩背记录。")
+            yield event.plain_result("该用户暂无ccb记录。")
             return
 
         # 总次数 & 总注入量
@@ -497,7 +497,7 @@ class ccb(Star):
         group_id = str(event.get_group_id())
         group_data = self.read_data().get(group_id, [])
         if not group_data:
-            yield event.plain_result("当前群暂无踩踩背记录。")
+            yield event.plain_result("当前群暂无ccb记录。")
             return
 
         # 计算max
@@ -563,7 +563,7 @@ class ccb(Star):
         all_data = self.read_data()
         group_data = all_data.get(group_id, [])
         if not group_data:
-            yield event.plain_result("当前群暂无踩踩背记录。")
+            yield event.plain_result("当前群暂无ccb记录。")
             return
 
         # 统计每个人对别人的操作次数
@@ -646,8 +646,8 @@ class ccb(Star):
         self.write_data(all_data)
 
         msg = (
-            f"已清除 {target_user_id} 的 踩踩背 记录：\n"
-            f"删除自身被踩踩背记录：{removed_self} 条\n"
+            f"已清除 {target_user_id} 的 CCB 记录：\n"
+            f"删除自身被CCB记录：{removed_self} 条\n"
             f"移除朝壁他人记录：{removed_from_others} 次\n"
             f"相关记录已重新校准"
         )
@@ -667,8 +667,8 @@ class ccb(Star):
         if target_user_id in self.white_list:
             self.white_list = [uid for uid in self.white_list if uid != target_user_id]
             self._save_white_list()
-            yield event.plain_result(f"已解除 {target_user_id} 的防踩踩背保护")
+            yield event.plain_result(f"已解除 {target_user_id} 的防CCB保护")
         else:
             self.white_list.append(target_user_id)
             self._save_white_list()
-            yield event.plain_result(f"已将 {target_user_id} 加入防踩踩背保护名单")
+            yield event.plain_result(f"已将 {target_user_id} 加入防CCB保护名单")
