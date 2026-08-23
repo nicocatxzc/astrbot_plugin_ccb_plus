@@ -44,7 +44,7 @@
   "is_log": {
     "description": "完整日志记录",
     "type": "bool",
-    "default": "false",
+    "default": false,
     "hint": "是否独立保留每一条ccb记录，包括双方与注入量。"
   }
 }
