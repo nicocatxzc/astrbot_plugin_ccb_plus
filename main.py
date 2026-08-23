@@ -11,12 +11,27 @@ import time
 import json
 import random
 import os
+import shutil
 
 data_dir = StarTools.get_data_dir("astrbot_plugin_ccb_plus")
 
 DATA_FILE = os.path.join(data_dir, "ccb.json")
 
 LOG_FILE = os.path.join(data_dir, "ccb_log.json")
+
+#migration
+old_data_file = "data/ccb.json"
+old_log_file = "data/ccb_log.json"
+
+try:
+    os.makedirs(data_dir, exist_ok=True)
+    # 复制数据文件
+    if os.path.exists(old_data_file) and not os.path.exists(DATA_FILE):
+        shutil.copy2(old_data_file, DATA_FILE)
+    if os.path.exists(old_log_file) and not os.path.exists(LOG_FILE):
+            shutil.copy2(old_log_file, LOG_FILE)
+except Exception:
+    pass
 
 a1 = "id"       # qq号
 a2 = "num"      # 北朝次数
