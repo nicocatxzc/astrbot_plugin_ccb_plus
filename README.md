@@ -16,7 +16,7 @@
 规范导入路径<br>
 数据迁移改用move方法<br>
 修改一处文案及一处缩进<br>
-昵称获取加 no_cache 强制刷新（仍有 NapCat 缓存延迟，变更后下一次查询才更新）<br>
+昵称获取加no_cache强制刷新，但是仍有缓存延迟，变更后第二次起或者重载插件才能够更新（疑似无法完全对齐）<br>
 
 ## 19/5/2026
 添加命令：ccbclear 清除记录；ccbnodo 防CCB开关。 逻辑来自 [ERX399 / ccb_plus_beta](https://github.com/ERX399/ccb_plus_beta) <br>
