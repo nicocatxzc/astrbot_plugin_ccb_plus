@@ -61,8 +61,9 @@ class ccb(Star):
         self.white_list  = config.get("white_list")
         self.selfdo = self.config.get("self_ccb", False)         # 0721 默认为否
         self.crit_prob  =   self.config.get("crit_prob")
-        self.auto_delete  =   self.config.get("auto_delete")    # 自动撤回
-        self.auto_delete_delay  =   self.config.get("auto_delete_delay")
+        self.attach_avatar = self.config.get("attach_avatar", True)     #附带头像
+        self.auto_delete  =   self.config.get("auto_delete",False)    # 自动撤回
+        self.auto_delete_delay  =   self.config.get("auto_delete_delay",60)
         self._withdraw_tasks: set = set()                   # 定时撤回任务集合
         self.is_log =   self.config.get("is_log")           # 完整日志，默认为false
 
@@ -359,6 +360,7 @@ class ccb(Star):
             V = round(V * 2, 2)
             crit = True
         pic = get_avatar(target_user_id)
+        target_avatar_comp = Comp.Image.fromURL(pic) if self.attach_avatar else []
 
         all_data = self.read_data()
         group_data = all_data.get(group_id, [])
@@ -420,15 +422,15 @@ class ccb(Star):
 
                         if crit:
                             chain = [
-                                Comp.Image.fromURL(pic),
-                                Comp.Plain(f"你和{nickname}发生了{duration}min长的{self.ccb_name}行为，向ta注入了 💥 暴击！{V:.2f}ml的生命因子"),
+                                Comp.Plain(f"你和{nickname}发生了{duration}min长的{self.ccb_name}行为，向ta注入了 💥 暴击！{V:.2f}ml的生命因子\n"),
+                                *(target_avatar_comp),
                                 Comp.Plain(f"这是ta的第{item[a2]}次。")
                             ]
                         else:
                             # 发送结果
                             chain = [
-                                Comp.Image.fromURL(pic),
-                                Comp.Plain(f"你和{nickname}发生了{duration}min长的{self.ccb_name}行为，向ta注入了{V:.2f}ml的生命因子"),
+                                Comp.Plain(f"你和{nickname}发生了{duration}min长的{self.ccb_name}行为，向ta注入了{V:.2f}ml的生命因子\n"),
+                                *(target_avatar_comp),
                                 Comp.Plain(f"这是ta的第{item[a2]}次。")
                             ]
                         if not await self._send_with_auto_delete(event, chain=chain):
@@ -464,7 +466,7 @@ class ccb(Star):
                 nickname = await self._get_nickname(event, target_user_id, strict_event=True)
 
                 chain = [
-                    Comp.Plain(f"你和{nickname}发生了{duration}min长的{self.ccb_name}行为，向ta注入了{V:.2f}ml的生命因子"),
+                    Comp.Plain(f"你和{nickname}发生了{duration}min长的{self.ccb_name}行为，向ta注入了{V:.2f}ml的生命因子\n"),
                     *(target_avatar_comp),
                     Comp.Plain("这是ta的初体验。")
                 ]
