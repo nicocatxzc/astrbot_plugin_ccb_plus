@@ -304,7 +304,7 @@ class ccb(Star):
     @filter.command("ccb", alias={'踩踩背', '捶捶背'})
     async def ccb(self, event: AstrMessageEvent):
         f"""
-        {ccb_name}，顾名思义，用来{ccb_name}
+        {self.ccb_name}，顾名思义，用来{self.ccb_name}
         用法： ccb [@]
         """
 
@@ -340,8 +340,8 @@ class ccb(Star):
 
         if target_user_id in self.white_list and not await self._is_admin(event):
             nickname = await self._get_nickname(event, target_user_id)
-            if not await self._send_with_auto_delete(event, text=f"{nickname} 的后门被后户之神霸占了，不能{ccb_name}（悲"):
-                yield event.plain_result(f"{nickname} 的后门被后户之神霸占了，不能{ccb_name}（悲")
+            if not await self._send_with_auto_delete(event, text=f"{nickname} 的后门被后户之神霸占了，不能{self.ccb_name}（悲"):
+                yield event.plain_result(f"{nickname} 的后门被后户之神霸占了，不能{self.ccb_name}（悲")
             return
 
         if target_user_id == actor_id and not self.selfdo:
@@ -420,15 +420,15 @@ class ccb(Star):
 
                         if crit:
                             chain = [
-                                Comp.Plain(f"你和{nickname}发生了{duration}min长的{ccb_name}行为，向ta注入了 💥 暴击！{V:.2f}ml的生命因子"),
                                 Comp.Image.fromURL(pic),
+                                Comp.Plain(f"你和{nickname}发生了{duration}min长的{self.ccb_name}行为，向ta注入了 💥 暴击！{V:.2f}ml的生命因子"),
                                 Comp.Plain(f"这是ta的第{item[a2]}次。")
                             ]
                         else:
                             # 发送结果
                             chain = [
-                                Comp.Plain(f"你和{nickname}发生了{duration}min长的{ccb_name}行为，向ta注入了{V:.2f}ml的生命因子"),
                                 Comp.Image.fromURL(pic),
+                                Comp.Plain(f"你和{nickname}发生了{duration}min长的{self.ccb_name}行为，向ta注入了{V:.2f}ml的生命因子"),
                                 Comp.Plain(f"这是ta的第{item[a2]}次。")
                             ]
                         if not await self._send_with_auto_delete(event, chain=chain):
@@ -454,8 +454,8 @@ class ccb(Star):
                         return
             except Exception as e:
                 logger.error(f"报错: {e}")
-                if not await self._send_with_auto_delete(event, text="对方拒绝了和你{ccb_name}"):
-                    yield event.plain_result("对方拒绝了和你{ccb_name}")
+                if not await self._send_with_auto_delete(event, text=f"对方拒绝了和你{self.ccb_name}"):
+                    yield event.plain_result(f"对方拒绝了和你{self.ccb_name}")
                 return
 
         else:
@@ -464,8 +464,8 @@ class ccb(Star):
                 nickname = await self._get_nickname(event, target_user_id, strict_event=True)
 
                 chain = [
-                    Comp.Plain(f"你和{nickname}发生了{duration}min长的{ccb_name}行为，向ta注入了{V:.2f}ml的生命因子"),
-                    Comp.Image.fromURL(pic),
+                    Comp.Plain(f"你和{nickname}发生了{duration}min长的{self.ccb_name}行为，向ta注入了{V:.2f}ml的生命因子"),
+                    *(target_avatar_comp),
                     Comp.Plain("这是ta的初体验。")
                 ]
                 if not await self._send_with_auto_delete(event, chain=chain):
@@ -499,8 +499,8 @@ class ccb(Star):
                 return
             except Exception as e:
                 logger.error(f"报错: {e}")
-                if not await self._send_with_auto_delete(event, text="对方拒绝了和你{ccb_name}"):
-                    yield event.plain_result("对方拒绝了和你{ccb_name}")
+                if not await self._send_with_auto_delete(event, text=f"对方拒绝了和你{self.ccb_name}"):
+                    yield event.plain_result(f"对方拒绝了和你{self.ccb_name}")
                 return
 
     @filter.command("ccbtop")
@@ -511,8 +511,8 @@ class ccb(Star):
         group_id = str(event.get_group_id())
         group_data = self.read_data().get(group_id, [])
         if not group_data:
-            if not await self._send_with_auto_delete(event, text="当前群暂无{ccb_name}记录。"):
-                yield event.plain_result("当前群暂无{ccb_name}记录。")
+            if not await self._send_with_auto_delete(event, text=f"当前群暂无{self.ccb_name}记录。"):
+                yield event.plain_result(f"当前群暂无{self.ccb_name}记录。")
             return
 
         top5 = sorted(group_data, key=lambda x: int(x.get(a2, 0)), reverse=True)[:5]
@@ -532,8 +532,8 @@ class ccb(Star):
         group_id = str(event.get_group_id())
         group_data = self.read_data().get(group_id, [])
         if not group_data:
-            if not await self._send_with_auto_delete(event, text="当前群暂无{ccb_name}记录。"):
-                yield event.plain_result("当前群暂无{ccb_name}记录。")
+            if not await self._send_with_auto_delete(event, text=f"当前群暂无{self.ccb_name}记录。"):
+                yield event.plain_result(f"当前群暂无{self.ccb_name}记录。")
             return
 
         top5 = sorted(group_data, key=lambda x: float(x.get(a3, 0)), reverse=True)[:5]
@@ -548,7 +548,7 @@ class ccb(Star):
     @filter.command("ccbinfo")
     async def ccbinfo(self, event: AstrMessageEvent):
         f"""
-        查询某人{ccb_name}信息：第一次对他{ccb_name}的人，被{ccb_name}的总次数，注入总量
+        查询某人{self.ccb_name}信息：第一次对他{self.ccb_name}的人，被{self.ccb_name}的总次数，注入总量
         用法：ccbinfo [@目标]
         """
         group_id = str(event.get_group_id())
@@ -561,8 +561,8 @@ class ccb(Star):
         # 查找目标记录
         record = next((r for r in group_data if r.get(a1) == target_user_id), None)
         if not record:
-            if not await self._send_with_auto_delete(event, text=f"该用户暂无{ccb_name}记录。"):
-                yield event.plain_result(f"该用户暂无{ccb_name}记录。")
+            if not await self._send_with_auto_delete(event, text=f"该用户暂无{self.ccb_name}记录。"):
+                yield event.plain_result(f"该用户暂无{self.ccb_name}记录。")
             return
 
         # 总次数 & 总注入量
@@ -629,8 +629,8 @@ class ccb(Star):
         group_id = str(event.get_group_id())
         group_data = self.read_data().get(group_id, [])
         if not group_data:
-            if not await self._send_with_auto_delete(event, text=f"当前群暂无{ccb_name}记录。"):
-                yield event.plain_result(f"当前群暂无{ccb_name}记录。")
+            if not await self._send_with_auto_delete(event, text=f"当前群暂无{self.ccb_name}记录。"):
+                yield event.plain_result(f"当前群暂无{self.ccb_name}记录。")
             return
 
         # 计算max
@@ -697,8 +697,8 @@ class ccb(Star):
         all_data = self.read_data()
         group_data = all_data.get(group_id, [])
         if not group_data:
-            if not await self._send_with_auto_delete(event, text=f"当前群暂无{ccb_name}记录。"):
-                yield event.plain_result(f"当前群暂无{ccb_name}记录。")
+            if not await self._send_with_auto_delete(event, text=f"当前群暂无{self.ccb_name}记录。"):
+                yield event.plain_result(f"当前群暂无{self.ccb_name}记录。")
             return
 
         # 统计每个人对别人的操作次数
@@ -738,7 +738,7 @@ class ccb(Star):
     @filter.command("ccbclear")
     async def ccbclear(self, event: AstrMessageEvent):
         f"""
-        管理员指令：清除某人的所有 {ccb_name} 记录
+        管理员指令：清除某人的所有 {self.ccb_name} 记录
         用法：ccbclear [@目标]
         """
         group_id = str(event.get_group_id())
@@ -782,8 +782,8 @@ class ccb(Star):
         self.write_data(all_data)
 
         msg = (
-            f"已清除 {target_user_id} 的 {ccb_name} 记录：\n"
-            f"删除自身被{ccb_name}记录：{removed_self} 条\n"
+            f"已清除 {target_user_id} 的 {self.ccb_name} 记录：\n"
+            f"删除自身被{self.ccb_name}记录：{removed_self} 条\n"
             f"移除朝壁他人记录：{removed_from_others} 次\n"
             f"相关记录已重新校准"
         )
@@ -793,7 +793,7 @@ class ccb(Star):
     @filter.command("ccbnodo")
     async def ccbnodo(self, event: AstrMessageEvent):
         f"""
-        管理员指令：切换目标防被 {ccb_name} 状态
+        管理员指令：切换目标防被 {self.ccb_name} 状态
         用法：ccbnodo [@目标]
         """
         if not await self._is_admin(event):
@@ -804,8 +804,8 @@ class ccb(Star):
         if target_user_id in self.white_list:
             self.white_list = [uid for uid in self.white_list if uid != target_user_id]
             self._save_white_list()
-            yield event.plain_result(f"已解除 {target_user_id} 的防{ccb_name}保护")
+            yield event.plain_result(f"已解除 {target_user_id} 的防{self.ccb_name}保护")
         else:
             self.white_list.append(target_user_id)
             self._save_white_list()
-            yield event.plain_result(f"已将 {target_user_id} 加入防{ccb_name}保护名单")
+            yield event.plain_result(f"已将 {target_user_id} 加入防{self.ccb_name}保护名单")
