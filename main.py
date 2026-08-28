@@ -5,7 +5,7 @@ from astrbot.api import logger
 import astrbot.api.message_components as Comp
 from collections import deque
 from astrbot.api import AstrBotConfig
-from astrbot.core.star import StarTools
+from astrbot.api.star import StarTools
 
 import time
 import json
@@ -27,9 +27,9 @@ try:
     os.makedirs(data_dir, exist_ok=True)
     # 复制数据文件
     if os.path.exists(old_data_file) and not os.path.exists(DATA_FILE):
-        shutil.copy2(old_data_file, DATA_FILE)
+        shutil.move(old_data_file, DATA_FILE)
     if os.path.exists(old_log_file) and not os.path.exists(LOG_FILE):
-            shutil.copy2(old_log_file, LOG_FILE)
+        shutil.move(old_log_file, LOG_FILE)
 except Exception:
     pass
 
@@ -89,7 +89,7 @@ class ccb(Star):
                 if group_id:
                     try:
                         member_info = await event.bot.api.call_action(
-                            'get_group_member_info', group_id=group_id, user_id=user_id
+                            'get_group_member_info', group_id=group_id, user_id=user_id, no_cache=True
                         )
                         nick = member_info.get("card") or member_info.get("nickname")
                         if nick:
@@ -237,7 +237,7 @@ class ccb(Star):
 
         if target_user_id in self.white_list and not await self._is_admin(event):
             nickname = await self._get_nickname(event, target_user_id)
-            yield event.plain_result(f"{nickname} 的后门被后户之神霸占了，不能踩踩背（悲")
+            yield event.plain_result(f"{nickname} 的后门被后户之神霸占了，不能ccb（悲")
             return
 
         if target_user_id == actor_id and not self.selfdo:

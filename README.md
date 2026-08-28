@@ -5,6 +5,19 @@
 # 新增的内容
 ## 更新前建议备份数据文件（如有需要）可能出现意料外错误
 
+## 25/8/2026
+### 合并 PR [#9](https://github.com/Koikokokokoro/astrbot_plugin_ccb_plus/pull/9)（nicocatxzc）
+旧数据自动复制至插件专属目录 <br>
+昵称优先显示（群名片 > QQ昵称 > QQ号）<br>
+管理员可绕过ccbnodo <br>
+添加命令别名：踩踩背 / 捶捶背 <br>
+
+### 统一文本、规范了几个格式
+规范导入路径<br>
+数据迁移改用move方法<br>
+修改一处文案及一处缩进<br>
+昵称获取加no_cache强制刷新，但是仍有缓存延迟，变更后第二次起或者重载插件才能够更新（疑似无法完全对齐）<br>
+
 ## 19/5/2026
 添加命令：ccbclear 清除记录；ccbnodo 防CCB开关。 逻辑来自 [ERX399 / ccb_plus_beta](https://github.com/ERX399/ccb_plus_beta) <br>
 清除了一些无效的注释，引用和变量 <br>
