@@ -46,6 +46,23 @@
     "default": 0.2,
     "hint": "ccb时暴击的概率。"
   },
+  "auto_delete": {
+    "description": "自动撤回",
+    "type": "bool",
+    "default": false,
+    "hint": "一段时间后自动撤回消息防止刷屏。"
+  },
+  "auto_delete_delay": {
+        "type": "int",
+        "description": "自动撤回延迟（秒）",
+        "hint": "自动撤回的延迟时间，单位秒。仅在开启“自动撤回”时生效。",
+        "default": 60,
+        "slider": {
+            "min": 3,
+            "max": 90,
+            "step": 1
+        }
+    },
   "is_log": {
     "description": "完整日志记录",
     "type": "bool",
