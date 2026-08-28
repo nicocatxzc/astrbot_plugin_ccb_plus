@@ -11,6 +11,7 @@ import time
 import json
 import random
 import asyncio
+from datetime import datetime
 import os
 import shutil
 
@@ -60,6 +61,7 @@ class ccb(Star):
         self.yw_prob = config.get("yw_probability")               # 触发概率
         self.white_list  = config.get("white_list")
         self.selfdo = self.config.get("self_ccb", False)         # 0721 默认为否
+        self.dis_ntr = self.config.get("dis_ntr", False)        # 禁止ntr
         self.crit_prob  =   self.config.get("crit_prob")
         self.attach_avatar = self.config.get("attach_avatar", True)     #附带头像
         self.auto_delete  =   self.config.get("auto_delete",False)    # 自动撤回
@@ -178,6 +180,102 @@ class ccb(Star):
             logger.warning(f"OneBot 直发失败，回退到标准发送路径: {e}")
             return False
     # end autodelete
+
+    # start wifepicker
+
+    def _find_wifepicker_plugin(self):
+        """
+        从 sys.modules 中查找已加载的 astrbot-plugin-wifepicker 插件模块，
+        并返回其插件实例（Star 实例）。
+        优先按精确模块路径获取，其次遍历 sys.modules 模糊匹配 wifepicker。
+        """
+        import sys
+
+        candidate_keys = [
+            "data.plugins.astrbot-plugin-wifepicker",
+            "data.plugins.astrbot_plugin_wifepicker",
+            "astrbot-plugin-wifepicker",
+            "astrbot_plugin_wifepicker",
+        ]
+        for key in candidate_keys:
+            mod = sys.modules.get(key)
+            if mod is not None:
+                plugin = self._get_plugin_instance_from_module(key, mod)
+                if plugin is not None:
+                    return plugin
+
+        # 兜底：遍历 sys.modules 模糊匹配
+        for key, mod in list(sys.modules.items()):
+            if mod is None or "wifepicker" not in key.lower():
+                continue
+            plugin = self._get_plugin_instance_from_module(key, mod)
+            if plugin is not None:
+                return plugin
+        return None
+
+    def _get_plugin_instance_from_module(self, module_path, mod):
+        """根据模块路径/模块对象，从 AstrBot star_map 注册表中获取插件实例。"""
+        try:
+            from astrbot.core.star.star import star_map
+            metadata = star_map.get(module_path)
+            if metadata is not None and metadata.star_cls is not None:
+                return metadata.star_cls
+            # 模块内定义的插件类，通过类的 __module__ 反查 star_map
+            import inspect
+            for attr in vars(mod).values():
+                if inspect.isclass(attr):
+                    metadata = star_map.get(attr.__module__)
+                    if metadata is not None and metadata.star_cls is not None:
+                        return metadata.star_cls
+        except Exception:
+            pass
+        return None
+
+    def _target_has_wife_today(self, group_id: str, target_user_id: str, sender_id: str) -> bool:
+        """
+        参考 astrbot-plugin-wifepicker 的 _cmd_draw_wife ：
+        当某用户今日抽取老婆次数 >= daily_limit（原逻辑将返回"你今天已经有老婆了"）
+        时，判定对方已经有老婆了。
+        最后额外比对操作者：若sender_id为wife_id则放行
+        """
+        try:
+            plugin = self._find_wifepicker_plugin()
+            if plugin is None:
+                return False
+
+            daily_limit = int(plugin.config.get("daily_limit", 1) or 1)
+            if daily_limit <= 0:
+                return False
+
+            records = getattr(plugin, "records", None)
+            if not isinstance(records, dict):
+                return False
+            # wifepicker 的 records 每日首次访问会被 ensure_today_records 重置为当日数据，
+            # 这里校验日期，避免把昨天的记录算作"今天已有老婆"。
+            if records.get("date") != datetime.now().strftime("%Y-%m-%d"):
+                return False
+
+            group_data = records.get("groups", {}).get(str(group_id), {})
+            group_records = (
+                group_data.get("records", []) if isinstance(group_data, dict) else []
+            )
+            # 收集目标用户今日的记录（user_recs）
+            target_records = [
+                r
+                for r in group_records
+                if isinstance(r, dict) and str(r.get("user_id")) == str(target_user_id)
+            ]
+            if len(target_records) < daily_limit:
+                return False
+            # 判断请求者是否是目标的老公
+            if any(str(r.get("wife_id")) == str(sender_id) for r in target_records):
+                return False
+            return True
+        except Exception as e:
+            logger.warning(f"查询 wifepicker 老婆记录失败: {e}")
+            return False
+
+        # end wifepicker
 
     async def _get_nickname(self, event: AstrMessageEvent, user_id: str, strict_event: bool = False) -> str:
         nickname = user_id
@@ -338,6 +436,17 @@ class ccb(Star):
             return
 
         target_user_id = self._get_target_user_id(event)
+
+        # dis_ntr
+        if self.dis_ntr and self._target_has_wife_today(group_id, target_user_id, send_id):
+            if not await self._send_with_auto_delete(event, text="对方已经有老公了，不要动歪心思哦~"):
+                yield event.plain_result("对方已经有老公了，不要动歪心思哦~")
+            return
+
+        if self.dis_ntr and self._target_has_wife_today(group_id, send_id, target_user_id):
+            if not await self._send_with_auto_delete(event, text="你已经有老婆了，要对ta负责哦~"):
+                yield event.plain_result("你已经有老婆了，要对ta负责哦~")
+            return
 
         if target_user_id in self.white_list and not await self._is_admin(event):
             nickname = await self._get_nickname(event, target_user_id)
