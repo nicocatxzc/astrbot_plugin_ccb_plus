@@ -1,4 +1,9 @@
 {
+  "ccb_name": {
+      "type": "string",
+      "default": "ccb",
+      "description": "踩踩背使用的代号"
+  },
   "yw_window": {
     "description": "触发赛博阳痿的窗口时间（秒）",
     "type": "int",
