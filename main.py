@@ -402,8 +402,8 @@ class ccb(Star):
 
     @filter.command("ccb", alias={'踩踩背', '捶捶背'})
     async def ccb(self, event: AstrMessageEvent):
-        f"""
-        {self.ccb_name}，顾名思义，用来{self.ccb_name}
+        """
+        ccb，顾名思义，用来ccb
         用法： ccb [@]
         """
 
@@ -658,8 +658,8 @@ class ccb(Star):
 
     @filter.command("ccbinfo")
     async def ccbinfo(self, event: AstrMessageEvent):
-        f"""
-        查询某人{self.ccb_name}信息：第一次对他{self.ccb_name}的人，被{self.ccb_name}的总次数，注入总量
+        """
+        查询某人ccb信息：第一次对他ccb的人，被ccb的总次数，注入总量
         用法：ccbinfo [@目标]
         """
         group_id = str(event.get_group_id())
@@ -848,8 +848,8 @@ class ccb(Star):
     # issue 6
     @filter.command("ccbclear")
     async def ccbclear(self, event: AstrMessageEvent):
-        f"""
-        管理员指令：清除某人的所有 {self.ccb_name} 记录
+        """
+        管理员指令：清除某人的所有ccb记录
         用法：ccbclear [@目标]
         """
         group_id = str(event.get_group_id())
@@ -903,8 +903,8 @@ class ccb(Star):
 
     @filter.command("ccbnodo")
     async def ccbnodo(self, event: AstrMessageEvent):
-        f"""
-        管理员指令：切换目标防被 {self.ccb_name} 状态
+        """
+        管理员指令：切换目标防被ccb状态
         用法：ccbnodo [@目标]
         """
         if not await self._is_admin(event):
